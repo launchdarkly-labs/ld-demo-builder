@@ -31,7 +31,7 @@ resource "aws_lambda_function" "lambda_demobuilder" {
   ]
 }
 
-resource "aws_lambda_function_url" "lambda_demoexpgen_url" {
+resource "aws_lambda_function_url" "lambda_demobuilder_url" {
   function_name      = aws_lambda_function.lambda_demobuilder.arn
   authorization_type = "NONE"
 
@@ -44,7 +44,7 @@ resource "aws_lambda_function_url" "lambda_demoexpgen_url" {
     max_age           = 86400
   }
 
-  depends_on = [aws_lambda_function.lambda_demoexpgen]
+  depends_on = [aws_lambda_function.lambda_demobuilder]
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_demobuilder" {
