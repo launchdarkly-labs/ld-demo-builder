@@ -49,6 +49,7 @@ def lambda_handler(event, context):
             demo.create_metrics()
             demo.create_metric_groups()
             demo.run_experiment()
+            demo.setup_release_pipeline()
 
             print(project_name)
             print(project_key)

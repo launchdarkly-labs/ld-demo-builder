@@ -9,6 +9,7 @@ class DemoBuilder:
     experiment_created = False
     client_id = ""
     sdk_key = ""
+    phase_ids = {}
 
     # Initialize DemoBuilder
     def __init__(self, api_key, project_key, project_name):
@@ -25,6 +26,7 @@ class DemoBuilder:
         self.create_metrics()
         self.create_metric_groups()
         self.run_experiment()
+        self.setup_release_pipeline()
 
     # Create the project
     def create_project(self):
@@ -114,16 +116,6 @@ class DemoBuilder:
         print("Done")
         self.metric_groups_created = True
 
-    # def create_experiments(self):
-    #     if not self.metric_groups_created:
-    #         print("Error: Metric groups not created")
-    #         return
-    #     print("Creating experiment:")
-    #     print("  - AI Analysis to Advisor")
-    #     self.exp_ai_analysis_to_advisor()
-    #     print("Done")
-    #     self.experiment_created = True
-
     def run_experiment(self):
         if not self.metric_groups_created:
             print("Error: Metric groups not created")
@@ -138,6 +130,33 @@ class DemoBuilder:
         print("Done")
         self.experiment_created = True
 
+    def setup_release_pipeline(self):
+        print("Creating release pipeline", end="...")
+        self.rp_default_releases()
+        print("Done")
+        print("Adding flags to the release pipeline")
+        self.rp_flag_rel_ai_asst()
+        print("  - Release: AI Assistant")
+        self.rp_flag_rel_updated_algorithm()
+        print("  - Release: Updated Charting Alorithm")
+        self.rp_flag_rel_ddos_protection()
+        print("  - Release: DDOS Protection")
+        self.rp_flag_rel_force_update()
+        print("  - Release: Force Update")
+        self.rp_flag_rel_advisor_insights()
+        print("  - Release: Advisor Insights")
+        self.rp_flag_rel_broker_dashboard()
+        print("  - Release: Broker Dashboard")
+        self.rp_flag_rel_debug_logging()
+        print("  - Release: Debug Logging")
+        self.rp_flag_rel_profile_ui()
+        print("  - Release: Profile UI")
+        self.rp_flag_rel_api_rate_limit()
+        print("  - Release: API Rate Limit")
+        self.rp_flag_rel_currency_exchange()
+        print("  - Release: Currency Exchange")
+        print("Done")
+
     ##################################################
     # Flag Definitions
     # ----------------
@@ -146,7 +165,6 @@ class DemoBuilder:
 
     def flag_rel_ai_asst(self):
         # Release: AI Assistant
-        # TODO: part of release pipeline
         # TODO: fallback variation
         res = self.ldproject.create_flag(
             "release-ai-asst",
@@ -198,7 +216,7 @@ class DemoBuilder:
                         "top_k": 250,
                         "top_p": 0.999,
                     },
-                    "name": "Sample Model Configuration",
+                    "name": "Control Configuration",
                     "description": "A basic model configuration for setting defaults in a model",
                 },
                 {
@@ -207,7 +225,7 @@ class DemoBuilder:
                         "modelId": "gpt-4o",
                         "temperature": 1,
                     },
-                    "name": "OpenAI GPT-4 Omni",
+                    "name": "Treatment 1: High Randomness",
                     "description": "Configurations for OpenAI GPT-4 Omni",
                 },
                 {
@@ -219,7 +237,7 @@ class DemoBuilder:
                         "top_k": 250,
                         "top_p": 0.999,
                     },
-                    "name": "Sample AWS Bedrock Claude Haiku",
+                    "name": "Treatment 2: Low Randomness",
                     "description": "A set of sample AI model parameters for using Claude 3 Haiku in AWS Bedrock",
                 },
             ],
@@ -250,7 +268,6 @@ class DemoBuilder:
 
     def flag_rel_new_widget(self):
         # Release: New Widget
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-new-widget",
             "Release: New Widget",
@@ -263,7 +280,6 @@ class DemoBuilder:
 
     def flag_rel_currency_exchange(self):
         # Release: Currency Exchange
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-currency-exchange",
             "Release: Currency Exchange",
@@ -275,7 +291,6 @@ class DemoBuilder:
 
     def flag_rel_profile_ui(self):
         # Release: Profile UI
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-profile-ui",
             "Release: Profile UI",
@@ -284,7 +299,6 @@ class DemoBuilder:
 
     def flag_rel_updated_algorithm(self):
         # Release: Updated Charting Alorithm
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-updated-charting-algorithm",
             "Release: Updated Charting Alorithm",
@@ -293,7 +307,6 @@ class DemoBuilder:
 
     def flag_rel_api_rate_limit(self):
         # Release: API Rate Limit
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-api-rate-limit",
             "Release: API Rate Limit",
@@ -305,7 +318,6 @@ class DemoBuilder:
 
     def flag_rel_debug_logging(self):
         # Release: Debug Logging
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-debug-logging",
             "Release: Debug Logging",
@@ -317,7 +329,6 @@ class DemoBuilder:
 
     def flag_rel_ddos_protection(self):
         # Release: DDOS Protection
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-ddos-protection",
             "Release: DDOS Protection",
@@ -330,7 +341,6 @@ class DemoBuilder:
 
     def flag_rel_migrate_table(self):
         # Release: Old to New Search Table
-        # TODO: Review migration attributes
         res = self.ldproject.create_flag(
             "release-old-to-new-search-table",
             "Release: Old to New Search Table",
@@ -340,7 +350,6 @@ class DemoBuilder:
 
     def flag_rel_force_update(self):
         # Release: Force Update
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-force-update",
             "Release: Force Update",
@@ -352,7 +361,6 @@ class DemoBuilder:
 
     def flag_rel_broker_dashboard(self):
         # Release: Broker Dashboard
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-broker-dashboard",
             "Release: Broker Dashboard",
@@ -364,7 +372,6 @@ class DemoBuilder:
 
     def flag_rel_advisor_insights(self):
         # Release: Advisor Insights
-        # TODO: Part of release pipeline
         res = self.ldproject.create_flag(
             "release-advisor-insights",
             "Release: Advisor Insights",
@@ -519,6 +526,188 @@ class DemoBuilder:
             "We believe that by using more up to date AI models, we will increase customer conversions to contact their advisor.",
             primary_funnel_key="ai-to-advisor-conversion",
             attributes=["plan", "beta", "metro", "net_worth"],
+        )
+
+    ##################################################
+    # Release Pipeline Definitions
+    # ----------------------------
+    # Each release pipeline is defined in its own
+    # function below
+    ##################################################
+
+    def rp_default_releases(self):
+        # Default Releases
+        res = self.ldproject.create_release_pipeline(
+            "default-releases", "Default Releases"
+        )
+        self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
+
+    def rp_flag_rel_ai_asst(self):
+        # Release: AI Assistant
+        self.ldproject.add_pipeline_flag("release-ai-asst", "default-releases")
+
+    def rp_flag_rel_updated_algorithm(self):
+        # Release: Updated Charting Alorithm
+        self.ldproject.add_pipeline_flag(
+            "release-updated-charting-algorithm", "default-releases"
+        )
+
+    def rp_flag_rel_ddos_protection(self):
+        # Release: DDOS Protection
+        self.ldproject.add_pipeline_flag("release-ddos-protection", "default-releases")
+        if not self.phase_ids:
+            self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
+        self.ldproject.advance_flag_phase(
+            "release-ddos-protection", "active", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-ddos-protection", "completed", self.phase_ids["test"]
+        )
+
+    def rp_flag_rel_force_update(self):
+        # Release: Force Update
+        self.ldproject.add_pipeline_flag("release-force-update", "default-releases")
+        if not self.phase_ids:
+            self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
+        self.ldproject.advance_flag_phase(
+            "release-force-update", "active", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-force-update", "completed", self.phase_ids["test"]
+        )
+
+    def rp_flag_rel_advisor_insights(self):
+        # Release: Advisor Insights
+        self.ldproject.add_pipeline_flag("release-advisor-insights", "default-releases")
+        self.ldproject.attach_metric_to_flag("release-advisor-insights", ["error-rate"])
+        if not self.phase_ids:
+            self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
+        self.ldproject.advance_flag_phase(
+            "release-advisor-insights", "active", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-advisor-insights", "completed", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-advisor-insights", "active", self.phase_ids["guard"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-advisor-insights", "completed", self.phase_ids["guard"]
+        )
+
+    def rp_flag_rel_broker_dashboard(self):
+        # Release: Broker Dashboard
+        self.ldproject.add_pipeline_flag("release-broker-dashboard", "default-releases")
+        self.ldproject.attach_metric_to_flag(
+            "release-broker-dashboard", ["error-rate", "latency"]
+        )
+        if not self.phase_ids:
+            self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
+        self.ldproject.advance_flag_phase(
+            "release-broker-dashboard", "active", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-broker-dashboard", "completed", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-broker-dashboard", "active", self.phase_ids["guard"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-broker-dashboard", "completed", self.phase_ids["guard"]
+        )
+
+    def rp_flag_rel_debug_logging(self):
+        # Release: Debug Logging
+        self.ldproject.add_pipeline_flag("release-debug-logging", "default-releases")
+        self.ldproject.attach_metric_to_flag("release-debug-logging", ["latency"])
+        if not self.phase_ids:
+            self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
+        self.ldproject.advance_flag_phase(
+            "release-debug-logging", "active", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-debug-logging", "completed", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-debug-logging", "active", self.phase_ids["guard"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-debug-logging", "completed", self.phase_ids["guard"]
+        )
+
+    def rp_flag_rel_profile_ui(self):
+        # Release: Profile UI
+        self.ldproject.add_pipeline_flag("release-profile-ui", "default-releases")
+        self.ldproject.attach_metric_to_flag(
+            "release-profile-ui", ["error-rate", "latency"]
+        )
+        if not self.phase_ids:
+            self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
+        self.ldproject.advance_flag_phase(
+            "release-profile-ui", "active", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-profile-ui", "completed", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-profile-ui", "active", self.phase_ids["guard"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-profile-ui", "completed", self.phase_ids["guard"]
+        )
+
+    def rp_flag_rel_api_rate_limit(self):
+        # Release: API Rate Limit
+        self.ldproject.add_pipeline_flag("release-api-rate-limit", "default-releases")
+        self.ldproject.attach_metric_to_flag("release-api-rate-limit", ["latency"])
+        if not self.phase_ids:
+            self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
+        self.ldproject.advance_flag_phase(
+            "release-api-rate-limit", "active", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-api-rate-limit", "completed", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-api-rate-limit", "active", self.phase_ids["guard"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-api-rate-limit", "completed", self.phase_ids["guard"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-api-rate-limit", "active", self.phase_ids["ga"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-api-rate-limit", "completed", self.phase_ids["ga"]
+        )
+
+    def rp_flag_rel_currency_exchange(self):
+        # Release: Currency Exchange
+        self.ldproject.add_pipeline_flag(
+            "release-currency-exchange", "default-releases"
+        )
+        self.ldproject.attach_metric_to_flag(
+            "release-currency-exchange", ["error-rate"]
+        )
+        if not self.phase_ids:
+            self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
+        self.ldproject.advance_flag_phase(
+            "release-currency-exchange", "active", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-currency-exchange", "completed", self.phase_ids["test"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-currency-exchange", "active", self.phase_ids["guard"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-currency-exchange", "completed", self.phase_ids["guard"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-currency-exchange", "active", self.phase_ids["ga"]
+        )
+        self.ldproject.advance_flag_phase(
+            "release-currency-exchange", "completed", self.phase_ids["ga"]
         )
 
     ##################################################

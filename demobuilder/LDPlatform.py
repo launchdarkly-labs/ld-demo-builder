@@ -3,11 +3,17 @@ import json
 
 
 class LDPlatform:
+    ##################################################
+    # Member variables
+    ##################################################
     project_key = ""
     api_key = ""
     client_id = ""
     sdk_key = ""
 
+    ##################################################
+    # Constructor
+    ##################################################
     def __init__(self, api_key):
         self.api_key = api_key
 
@@ -45,6 +51,9 @@ class LDPlatform:
 
         return response
 
+    ##################################################
+    # Create a project
+    ##################################################
     def create_project(self, project_key, project_name):
         self.project_key = project_key
         if self.project_exists(project_key):
@@ -58,7 +67,6 @@ class LDPlatform:
             headers={"Authorization": self.api_key, "Content-Type": "application/json"},
         )
 
-        # client_id = "666b5cd5e16c371081d3ff33"
         data = json.loads(response.text)
         for e in data["environments"]:
             if e["key"] == "test":
@@ -67,9 +75,12 @@ class LDPlatform:
                 self.sdk_key = e["apiKey"]
 
         if "message" in data:
-            print("Error creating flag: " + data["message"])
+            print("Error creating project: " + data["message"])
         return response
 
+    ##################################################
+    # Delete a project
+    ##################################################
     def delete_project(self):
         res = self.getrequest(
             "DELETE",
@@ -77,6 +88,9 @@ class LDPlatform:
             headers={"Authorization": self.api_key},
         )
 
+    ##################################################
+    # Create a flag
+    ##################################################
     def create_flag(
         self,
         flag_key,
@@ -135,9 +149,9 @@ class LDPlatform:
             print("Error creating flag: " + data["message"])
         return response
 
-    def add_release(self, flag_key):
-        return
-
+    ##################################################
+    # Create a metric
+    ##################################################
     def create_metric(
         self,
         metric_key,
@@ -179,9 +193,12 @@ class LDPlatform:
         )
         data = json.loads(response.text)
         if "message" in data:
-            print("Error creating flag: " + data["message"])
+            print("Error creating metric: " + data["message"])
         return response
 
+    ##################################################
+    # Create a metric group
+    ##################################################
     def create_metric_group(
         self, group_key, group_name, metrics, kind="funnel", description=""
     ):
@@ -213,9 +230,12 @@ class LDPlatform:
         )
         data = json.loads(response.text)
         if "message" in data:
-            print("Error creating flag: " + data["message"])
+            print("Error creating metric group: " + data["message"])
         return response
 
+    ##################################################
+    # Create an experiment
+    ##################################################
     def create_experiment(
         self,
         exp_key,
@@ -268,13 +288,96 @@ class LDPlatform:
         )
         data = json.loads(response.text)
         if "message" in data:
-            print("Error creating flag: " + data["message"])
+            print("Error creating experiment: " + data["message"])
+        return response
+
+    ##################################################
+    # Create a release pipeline
+    ##################################################
+    def create_release_pipeline(self, pipeline_key, pipeline_name):
+        if self.release_pipeline_exists(pipeline_key):
+            return
+
+        payload = {
+            "description": "Standard pipeline to roll out to production",
+            "key": pipeline_key,
+            "name": pipeline_name,
+            "phases": [
+                {
+                    "audiences": [
+                        {
+                            "environmentKey": "test",
+                            "name": "everyone",
+                            "configuration": {
+                                "releaseStrategy": "immediate-rollout",
+                                "requireApproval": False,
+                            },
+                        }
+                    ],
+                    "name": "Testing Phase",
+                },
+                {
+                    "audiences": [
+                        {
+                            "environmentKey": "production",
+                            "name": "everyone",
+                            "configuration": {
+                                "releaseStrategy": "monitored-release",
+                                "requireApproval": False,
+                                "releaseGuardianConfiguration": {
+                                    "monitoringWindowMilliseconds": 3600000,
+                                    "rolloutWeight": 50000,
+                                    "rollbackOnRegression": True,
+                                },
+                            },
+                        }
+                    ],
+                    "name": "Guarded Releases",
+                },
+                {
+                    "audiences": [
+                        {
+                            "environmentKey": "production",
+                            "name": "everyone",
+                            "configuration": {
+                                "releaseStrategy": "immediate-rollout",
+                                "requireApproval": False,
+                            },
+                        }
+                    ],
+                    "name": "GA",
+                },
+            ],
+            "isProjectDefault": True,
+        }
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": self.api_key,
+            "LD-API-Version": "beta",
+        }
+        response = self.getrequest(
+            "POST",
+            "https://app.launchdarkly.com/api/v2/projects/"
+            + self.project_key
+            + "/release-pipelines",
+            json=payload,
+            headers=headers,
+        )
+        data = json.loads(response.text)
+        if "message" in data:
+            print("Error creating release pipeline: " + data["message"])
         return response
 
     #####################################
+    #
     # Helper functions
+    #
     #####################################
 
+    ##################################################
+    # Check if a project exists
+    ##################################################
     def project_exists(self, project_key):
         res = self.getrequest(
             "GET",
@@ -286,6 +389,9 @@ class LDPlatform:
             return False
         return True
 
+    ##################################################
+    # Check if a flag exists
+    ##################################################
     def flag_exists(self, flag_key):
         res = self.getrequest(
             "GET",
@@ -300,6 +406,9 @@ class LDPlatform:
             return False
         return True
 
+    ##################################################
+    # Check if a metric exists
+    ##################################################
     def metric_exists(self, metric_key):
         res = self.getrequest(
             "GET",
@@ -314,6 +423,9 @@ class LDPlatform:
             return False
         return True
 
+    ##################################################
+    # Check if a metric group exists
+    ##################################################
     def metric_group_exists(self, group_key):
         res = self.getrequest(
             "GET",
@@ -328,6 +440,9 @@ class LDPlatform:
             return False
         return True
 
+    ##################################################
+    # Check if an experiment exists
+    ##################################################
     def experiment_exists(self, exp_key, exp_env):
         res = self.getrequest(
             "GET",
@@ -344,6 +459,32 @@ class LDPlatform:
             return False
         return True
 
+    ##################################################
+    # Check if a release pipeline exists
+    ##################################################
+    def release_pipeline_exists(self, pipeline_key):
+        url = (
+            "https://app.launchdarkly.com/api/v2/projects/"
+            + self.project_key
+            + "/release-pipelines"
+            + pipeline_key
+        )
+        res = self.getrequest(
+            "GET",
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": self.api_key,
+                "LD-API-Version": "beta",
+            },
+        )
+        if res.status_code == 404:
+            return False
+        return True
+
+    ##################################################
+    # Build a treatment object
+    ##################################################
     def treatment(self, name, baseline, allocation_percent, flag_key, variation_id):
         return {
             "name": name,
@@ -357,7 +498,10 @@ class LDPlatform:
             ],
         }
 
-    def get_flag(self, flag_key):
+    ##################################################
+    # Get the flag variation IDs, returns a list
+    ##################################################
+    def get_flag_variations(self, flag_key):
         var_ids = []
         url = (
             "https://app.launchdarkly.com/api/v2/flags/"
@@ -375,8 +519,11 @@ class LDPlatform:
             var_ids.append(var["_id"])
         return var_ids
 
+    ##################################################
+    # Create a list of treatments, returns a list
+    ##################################################
     def get_treatments(self, flag_key):
-        treatments = self.get_flag(flag_key)
+        treatments = self.get_flag_variations(flag_key)
         ret_treatments = []
         treament_num = 1
         ret_treatments.append(
@@ -391,18 +538,27 @@ class LDPlatform:
 
         return ret_treatments
 
+    ##################################################
+    # Experiment metric object
+    ##################################################
     def exp_metric(self, key, is_group=True):
         return {
             "key": key,
             "isGroup": is_group,
         }
 
+    ##################################################
+    # List of experiment metrics
+    ##################################################
     def get_exp_metrics(self):
         return [
             self.exp_metric("ai-to-advisor-conversion"),
             self.exp_metric("ai-csat"),
         ]
 
+    ##################################################
+    # Toggle flag state
+    ##################################################
     def toggle_flag(self, flag_key, flag_state, flag_env, comment=None):
         cmd = ""
         if flag_state == "on":
@@ -427,6 +583,9 @@ class LDPlatform:
         res = self.getrequest("PATCH", url, headers=headers, json=payload)
         return res
 
+    ##################################################
+    # Start experiment iteration
+    ##################################################
     def start_exp_iteration(self, exp_key, exp_env):
         url = (
             "https://app.launchdarkly.com/api/v2/projects/"
@@ -453,3 +612,107 @@ class LDPlatform:
 
         res = self.getrequest("PATCH", url, headers=headers, json=payload)
         return res
+
+    ##################################################
+    # Add a flag to a pipeline
+    ##################################################
+    def add_pipeline_flag(self, flag_key, pipeline_key):
+        phase_ids = self.get_pipeline_phase_ids(pipeline_key)
+        phase_id = phase_ids[list(phase_ids.keys())[0]]
+        url = (
+            "https://app.launchdarkly.com/api/v2/projects/"
+            + self.project_key
+            + "/flags/"
+            + flag_key
+            + "/release"
+        )
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": self.api_key,
+            "LD-API-Version": "beta",
+        }
+
+        payload = {
+            "releaseVariationId": phase_id,
+            "releasePipelineKey": pipeline_key,
+        }
+
+        response = requests.put(url, json=payload, headers=headers)
+        return response
+
+    ##################################################
+    # Get pipeline phase IDs
+    ##################################################
+    def get_pipeline_phase_ids(self, pipeline_key):
+        url = (
+            "https://app.launchdarkly.com/api/v2/projects/"
+            + self.project_key
+            + "/release-pipelines/"
+            + pipeline_key
+        )
+        res = self.getrequest(
+            "GET",
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": self.api_key,
+                "LD-API-Version": "beta",
+            },
+        )
+        data = json.loads(res.text)
+        c = 0
+        phases = ["test", "guard", "ga"]
+        phase_ids = {}
+        for p in data["phases"]:
+            id = p["id"]
+            phase_ids.update({phases[c]: id})
+            c += 1
+        return phase_ids
+
+    ##################################################
+    # Attach a metric to a flag
+    ##################################################
+    def attach_metric_to_flag(self, flag_key, metric_keys=[]):
+        url = (
+            "https://app.launchdarkly.com/api/v2/projects/"
+            + self.project_key
+            + "/flags/"
+            + flag_key
+            + "/measured-rollout-configuration"
+        )
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": self.api_key,
+            "LD-API-Version": "beta",
+        }
+
+        payload = {"metricKeys": metric_keys}
+
+        response = requests.put(url, json=payload, headers=headers)
+        return response
+
+    ##################################################
+    # Advance a flag to the next phase
+    ##################################################
+    def advance_flag_phase(self, flag_key, status, pipeline_phase_id):
+        url = (
+            "https://app.launchdarkly.com/api/v2/projects/"
+            + self.project_key
+            + "/flags/"
+            + flag_key
+            + "/release/phases/"
+            + pipeline_phase_id
+        )
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": self.api_key,
+            "LD-API-Version": "beta",
+        }
+
+        payload = {"status": status}
+
+        response = requests.put(url, json=payload, headers=headers)
+        return response

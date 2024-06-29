@@ -46,8 +46,8 @@ match cmd:
         demo.create_flags()
         demo.create_metrics()
         demo.create_metric_groups()
-        # demo.create_experiments()
         demo.run_experiment()
+        demo.setup_release_pipeline()
         print(
             "Project created: "
             + project_name
