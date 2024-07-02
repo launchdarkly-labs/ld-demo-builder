@@ -175,3 +175,4 @@ demobuilder/**
 !demobuilder/DemoBuilder.py
 !demobuilder/wrapper.py
 
+.DS_Store

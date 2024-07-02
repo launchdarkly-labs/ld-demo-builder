@@ -5,6 +5,7 @@ import DemoBuilder
 
 
 LD_API_KEY = os.environ["LD_API_KEY"]
+LD_API_KEY_USER = os.environ["LD_API_KEY_USER"]
 
 
 def usage():
@@ -36,7 +37,9 @@ match cmd:
             project_key = sys.argv[2].lower()
             project_name = "Coast Demo (" + project_key.replace("cxld-", "") + ")"
 
-        demo = DemoBuilder.DemoBuilder(LD_API_KEY, project_key, project_name)
+        demo = DemoBuilder.DemoBuilder(
+            LD_API_KEY, LD_API_KEY_USER, project_key, project_name
+        )
         # will eventually be: build_all()
         if create_project:
             demo.create_project()
@@ -48,6 +51,7 @@ match cmd:
         demo.create_metric_groups()
         demo.run_experiment()
         demo.setup_release_pipeline()
+        # demo.setup_flag_shortcuts()
         print(
             "Project created: "
             + project_name
@@ -67,7 +71,9 @@ match cmd:
             sys.exit()
         project_key = pname
         project_name = "Coast Demo (" + pname.replace("cxld-", "") + ")"
-        demo = DemoBuilder.DemoBuilder(LD_API_KEY, project_key, project_name)
+        demo = DemoBuilder.DemoBuilder(
+            LD_API_KEY, LD_API_KEY_USER, project_key, project_name
+        )
         print(
             "Are you sure you want to delete this project? It will be gone forever and cannot be undone."
         )

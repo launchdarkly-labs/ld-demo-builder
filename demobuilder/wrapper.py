@@ -7,6 +7,7 @@ import boto3
 import DemoBuilder
 
 LD_API_KEY = os.environ["LD_API_KEY"]
+LD_API_KEY_USER = os.environ["LD_API_KEY_USER"]
 ddb_table = boto3.resource("dynamodb").Table(os.environ["DDB_TABLE"])
 logs = boto3.client("logs")
 
@@ -39,7 +40,9 @@ def lambda_handler(event, context):
                 project_name = "Coast Demo (" + pname + ")"
             else:
                 project_name = "Coast Demo (" + project_key.replace("cxld-", "") + ")"
-            demo = DemoBuilder.DemoBuilder(LD_API_KEY, project_key, project_name)
+            demo = DemoBuilder.DemoBuilder(
+                LD_API_KEY, LD_API_KEY_USER, project_key, project_name
+            )
             if create_project:
                 demo.create_project()
             else:
@@ -50,6 +53,7 @@ def lambda_handler(event, context):
             demo.create_metric_groups()
             demo.run_experiment()
             demo.setup_release_pipeline()
+            # demo.setup_flag_shortcuts()
 
             print(project_name)
             print(project_key)
@@ -98,7 +102,9 @@ def lambda_handler(event, context):
                     }
                 )
 
-            demo = DemoBuilder.DemoBuilder(LD_API_KEY, project_key, project_name)
+            demo = DemoBuilder.DemoBuilder(
+                LD_API_KEY, LD_API_KEY_USER, project_key, project_name
+            )
             demo.cleanup()
             ddb_table.delete_item(Key={"ProjectKey": project_key})
             return json.dumps(

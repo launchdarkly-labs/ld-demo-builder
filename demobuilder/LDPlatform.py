@@ -8,14 +8,16 @@ class LDPlatform:
     ##################################################
     project_key = ""
     api_key = ""
+    api_key_user = ""
     client_id = ""
     sdk_key = ""
 
     ##################################################
     # Constructor
     ##################################################
-    def __init__(self, api_key):
+    def __init__(self, api_key, api_key_user):
         self.api_key = api_key
+        self.api_key_user = api_key_user
 
     def getrequest(self, method, url, json=None, headers=None):
 
@@ -69,9 +71,8 @@ class LDPlatform:
 
         data = json.loads(response.text)
         for e in data["environments"]:
-            if e["key"] == "test":
-                self.client_id = e["_id"]
             if e["key"] == "production":
+                self.client_id = e["_id"]
                 self.sdk_key = e["apiKey"]
 
         if "message" in data:
@@ -369,6 +370,36 @@ class LDPlatform:
             print("Error creating release pipeline: " + data["message"])
         return response
 
+    def create_shortcut(self):
+        payload = {
+            "name": "another",
+            "key": "another",
+            "icon": "bolt",
+            "type": "flags",
+            "context": {
+                "projectKey": self.project_key,
+                "environmentKeys": ["production", "test"],
+                "selectedEnvironmentKey": "production",
+            },
+            "filters": {"filter": {"tags": ["AI"]}},
+            "visibility": "me",
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": self.api_key_user,
+            "LD-API-Version": "beta",
+        }
+        response = self.getrequest(
+            "POST",
+            "https://app.launchdarkly.com/api/v2/shortcuts",
+            json=payload,
+            headers=headers,
+        )
+        data = json.loads(response.text)
+        if "message" in data:
+            print("Error creating shortcut: " + data["message"])
+        return response
+
     #####################################
     #
     # Helper functions
@@ -525,16 +556,22 @@ class LDPlatform:
     def get_treatments(self, flag_key):
         treatments = self.get_flag_variations(flag_key)
         ret_treatments = []
-        treament_num = 1
-        ret_treatments.append(
-            self.treatment("Treatment 1", True, 10, flag_key, treatments[0])
-        )
 
-        for t in treatments:
-            treament_num += 1
-            ret_treatments.append(
-                self.treatment("Treatment " + str(treament_num), False, 30, flag_key, t)
+        ret_treatments.append(
+            self.treatment(
+                "Control Configuration", True, 33.34, flag_key, treatments[0]
             )
+        )
+        ret_treatments.append(
+            self.treatment(
+                "Treatment 1: High Randomness", False, 33.33, flag_key, treatments[1]
+            )
+        )
+        ret_treatments.append(
+            self.treatment(
+                "Treatment 2: Low Randomness", False, 33.33, flag_key, treatments[2]
+            )
+        )
 
         return ret_treatments
 
@@ -553,6 +590,7 @@ class LDPlatform:
     def get_exp_metrics(self):
         return [
             self.exp_metric("ai-to-advisor-conversion"),
+            self.exp_metric("ai-performance"),
             self.exp_metric("ai-csat"),
         ]
 

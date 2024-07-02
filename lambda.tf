@@ -17,12 +17,13 @@ resource "aws_lambda_function" "lambda_demobuilder" {
   handler          = "wrapper.lambda_handler"
   source_code_hash = data.archive_file.demobuilder_zip.output_base64sha256
   runtime          = "python3.11"
-  timeout          = 30
+  timeout          = 300
   environment {
     variables = {
-      LOG_GROUP  = local.demobuilder_loggroup
-      LD_API_KEY = var.ld_api_key
-      DDB_TABLE  = aws_dynamodb_table.demo_tracker.name
+      LOG_GROUP       = local.demobuilder_loggroup
+      LD_API_KEY      = var.ld_api_key
+      LD_API_KEY_USER = var.ld_api_key_user
+      DDB_TABLE       = aws_dynamodb_table.demo_tracker.name
     }
   }
 

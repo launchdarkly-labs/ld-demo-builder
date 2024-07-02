@@ -12,11 +12,12 @@ class DemoBuilder:
     phase_ids = {}
 
     # Initialize DemoBuilder
-    def __init__(self, api_key, project_key, project_name):
+    def __init__(self, api_key, api_key_user, project_key, project_name):
         self.api_key = api_key
+        self.api_key_user = api_key_user
         self.project_key = project_key
         self.project_name = project_name
-        self.ldproject = LDPlatform.LDPlatform(api_key)
+        self.ldproject = LDPlatform.LDPlatform(api_key, api_key_user)
         self.ldproject.project_key = project_key
 
     # Create everything
@@ -124,7 +125,7 @@ class DemoBuilder:
         self.ldproject.toggle_flag(
             "config-ai-model", "on", "production", "Turn on flag for experiment"
         )
-        print("  - AI Analysis to Advisor")
+        print("  - Advisor Conversion")
         self.exp_ai_analysis_to_advisor()
         self.ldproject.start_exp_iteration("ai-analysis-to-advisor", "production")
         print("Done")
@@ -135,6 +136,7 @@ class DemoBuilder:
         self.rp_default_releases()
         print("Done")
         print("Adding flags to the release pipeline")
+        self.rp_flag_config_ai_fm()
         self.rp_flag_rel_ai_asst()
         print("  - Release: AI Assistant")
         self.rp_flag_rel_updated_algorithm()
@@ -157,17 +159,25 @@ class DemoBuilder:
         print("  - Release: Currency Exchange")
         print("Done")
 
+    def setup_flag_shortcuts(self):
+        print("Creating flag shortcuts", end="...")
+        self.flag_ai_shortcut()
+        print("Done")
+
     ##################################################
     # Flag Definitions
     # ----------------
     # Each flag is defined in its own function below
     ##################################################
 
+    def flag_ai_shortcut(self):
+        res = self.ldproject.create_shortcut()
+
     def flag_rel_ai_asst(self):
         # Release: AI Assistant
         # TODO: fallback variation
         res = self.ldproject.create_flag(
-            "release-ai-asst",
+            "release-ai-assistant",
             "Release: AI Assistant",
             [
                 {"value": True, "name": "Available"},
@@ -199,6 +209,7 @@ class DemoBuilder:
                     "name": "Sample Detailed Report",
                 },
             ],
+            tags=["AI"],
         )
 
     def flag_config_ai_model(self):
@@ -241,13 +252,14 @@ class DemoBuilder:
                     "description": "A set of sample AI model parameters for using Claude 3 Haiku in AWS Bedrock",
                 },
             ],
+            tags=["AI"],
         )
 
     def flag_config_ai_fm(self):
         # Config: AI Foundation Model
         # TODO: Default rule is "Claude 3 Haiku"
         res = self.ldproject.create_flag(
-            "config-ai-fm",
+            "config-ai-foundation-model",
             "Config: AI Foundation Model",
             [
                 {
@@ -264,6 +276,7 @@ class DemoBuilder:
                     "description": "Basic Model Configuration for Claude 3 Haiku",
                 },
             ],
+            tags=["AI"],
         )
 
     def flag_rel_new_widget(self):
@@ -517,10 +530,10 @@ class DemoBuilder:
     ##################################################
 
     def exp_ai_analysis_to_advisor(self):
-        # AI Analysis to Advisor
+        # Advisor Conversion
         res = self.ldproject.create_experiment(
             "ai-analysis-to-advisor",
-            "AI Analysis to Advisor",
+            "Advisor Conversion",
             "production",
             "config-ai-model",
             "We believe that by using more up to date AI models, we will increase customer conversions to contact their advisor.",
@@ -542,9 +555,14 @@ class DemoBuilder:
         )
         self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
 
+    def rp_flag_config_ai_fm(self):
+        self.ldproject.attach_metric_to_flag(
+            "config-ai-foundation-model", ["error-rate", "latency"]
+        )
+
     def rp_flag_rel_ai_asst(self):
         # Release: AI Assistant
-        self.ldproject.add_pipeline_flag("release-ai-asst", "default-releases")
+        self.ldproject.add_pipeline_flag("release-ai-assistant", "default-releases")
 
     def rp_flag_rel_updated_algorithm(self):
         # Release: Updated Charting Alorithm

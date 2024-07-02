@@ -19,6 +19,10 @@ variable "ld_api_key" {
   description = "LaunchDarkly API key"
 }
 
+variable "ld_api_key_user" {
+  description = "LaunchDarkly API key (User Token)"
+}
+
 variable "owner" {
   description = "Your email address"
 }
