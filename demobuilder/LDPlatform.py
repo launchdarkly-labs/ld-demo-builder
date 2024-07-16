@@ -655,8 +655,8 @@ class LDPlatform:
     # Add a flag to a pipeline
     ##################################################
     def add_pipeline_flag(self, flag_key, pipeline_key):
-        phase_ids = self.get_pipeline_phase_ids(pipeline_key)
-        phase_id = phase_ids[list(phase_ids.keys())[0]]
+        var_ids = self.get_flag_variations(flag_key)
+        var_id = var_ids[0]
         url = (
             "https://app.launchdarkly.com/api/v2/projects/"
             + self.project_key
@@ -672,7 +672,7 @@ class LDPlatform:
         }
 
         payload = {
-            "releaseVariationId": phase_id,
+            "releaseVariationId": var_id,
             "releasePipelineKey": pipeline_key,
         }
 
