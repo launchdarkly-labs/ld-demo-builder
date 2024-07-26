@@ -766,5 +766,4 @@ class LDPlatform:
 
         time.sleep(5)
 
-        print(response.status_code)
         return response
