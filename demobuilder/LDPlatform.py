@@ -764,6 +764,4 @@ class LDPlatform:
             if status_code != 200:
                 time.sleep(2)
 
-        time.sleep(5)
-
         return response
