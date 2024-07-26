@@ -32,6 +32,11 @@ def lambda_handler(event, context):
 
     match action:
         case "build":
+            if "email" not in body:
+                return json.dumps(
+                    {"statusCode": 400, "body": {"message": "Missing email"}}
+                )
+            email = body["email"].lower()
             create_project = False
             if project_key == "":
                 create_project = True
@@ -66,7 +71,7 @@ def lambda_handler(event, context):
                     "ProjectName": project_name,
                     "ClientId": demo.client_id,
                     "SdkKey": demo.sdk_key,
-                    "UserId": "TDB",
+                    "UserId": email,
                     "Created": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 }
             )

@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 
 
 class LDPlatform:
@@ -326,7 +327,7 @@ class LDPlatform:
                                 "releaseStrategy": "monitored-release",
                                 "requireApproval": False,
                                 "releaseGuardianConfiguration": {
-                                    "monitoringWindowMilliseconds": 3600000,
+                                    "monitoringWindowMilliseconds": 3000,
                                     "rolloutWeight": 50000,
                                     "rollbackOnRegression": True,
                                 },
@@ -735,22 +736,35 @@ class LDPlatform:
     # Advance a flag to the next phase
     ##################################################
     def advance_flag_phase(self, flag_key, status, pipeline_phase_id):
-        url = (
-            "https://app.launchdarkly.com/api/v2/projects/"
-            + self.project_key
-            + "/flags/"
-            + flag_key
-            + "/release/phases/"
-            + pipeline_phase_id
-        )
+        counter = 0
+        status_code = 0
+        while status_code != 200:
+            counter += 1
+            url = (
+                "https://app.launchdarkly.com/api/v2/projects/"
+                + self.project_key
+                + "/flags/"
+                + flag_key
+                + "/release/phases/"
+                + pipeline_phase_id
+            )
 
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": self.api_key,
-            "LD-API-Version": "beta",
-        }
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": self.api_key,
+                "LD-API-Version": "beta",
+            }
 
-        payload = {"status": status}
+            payload = {"status": status}
 
-        response = requests.put(url, json=payload, headers=headers)
+            response = requests.put(url, json=payload, headers=headers)
+            status_code = response.status_code
+            if counter > 8:
+                break
+            if status_code != 200:
+                time.sleep(2)
+
+        time.sleep(5)
+
+        print(response.status_code)
         return response

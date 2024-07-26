@@ -578,9 +578,6 @@ class DemoBuilder:
         self.ldproject.advance_flag_phase(
             "release-ddos-protection", "active", self.phase_ids["test"]
         )
-        self.ldproject.advance_flag_phase(
-            "release-ddos-protection", "completed", self.phase_ids["test"]
-        )
 
     def rp_flag_rel_force_update(self):
         # Release: Force Update
@@ -589,9 +586,6 @@ class DemoBuilder:
             self.phase_ids = self.ldproject.get_pipeline_phase_ids("default-releases")
         self.ldproject.advance_flag_phase(
             "release-force-update", "active", self.phase_ids["test"]
-        )
-        self.ldproject.advance_flag_phase(
-            "release-force-update", "completed", self.phase_ids["test"]
         )
 
     def rp_flag_rel_advisor_insights(self):
@@ -604,13 +598,7 @@ class DemoBuilder:
             "release-advisor-insights", "active", self.phase_ids["test"]
         )
         self.ldproject.advance_flag_phase(
-            "release-advisor-insights", "completed", self.phase_ids["test"]
-        )
-        self.ldproject.advance_flag_phase(
             "release-advisor-insights", "active", self.phase_ids["guard"]
-        )
-        self.ldproject.advance_flag_phase(
-            "release-advisor-insights", "completed", self.phase_ids["guard"]
         )
 
     def rp_flag_rel_broker_dashboard(self):
@@ -625,13 +613,7 @@ class DemoBuilder:
             "release-broker-dashboard", "active", self.phase_ids["test"]
         )
         self.ldproject.advance_flag_phase(
-            "release-broker-dashboard", "completed", self.phase_ids["test"]
-        )
-        self.ldproject.advance_flag_phase(
             "release-broker-dashboard", "active", self.phase_ids["guard"]
-        )
-        self.ldproject.advance_flag_phase(
-            "release-broker-dashboard", "completed", self.phase_ids["guard"]
         )
 
     def rp_flag_rel_debug_logging(self):
@@ -644,13 +626,7 @@ class DemoBuilder:
             "release-debug-logging", "active", self.phase_ids["test"]
         )
         self.ldproject.advance_flag_phase(
-            "release-debug-logging", "completed", self.phase_ids["test"]
-        )
-        self.ldproject.advance_flag_phase(
             "release-debug-logging", "active", self.phase_ids["guard"]
-        )
-        self.ldproject.advance_flag_phase(
-            "release-debug-logging", "completed", self.phase_ids["guard"]
         )
 
     def rp_flag_rel_profile_ui(self):
@@ -665,13 +641,7 @@ class DemoBuilder:
             "release-profile-ui", "active", self.phase_ids["test"]
         )
         self.ldproject.advance_flag_phase(
-            "release-profile-ui", "completed", self.phase_ids["test"]
-        )
-        self.ldproject.advance_flag_phase(
             "release-profile-ui", "active", self.phase_ids["guard"]
-        )
-        self.ldproject.advance_flag_phase(
-            "release-profile-ui", "completed", self.phase_ids["guard"]
         )
 
     def rp_flag_rel_api_rate_limit(self):
@@ -684,19 +654,10 @@ class DemoBuilder:
             "release-api-rate-limit", "active", self.phase_ids["test"]
         )
         self.ldproject.advance_flag_phase(
-            "release-api-rate-limit", "completed", self.phase_ids["test"]
-        )
-        self.ldproject.advance_flag_phase(
             "release-api-rate-limit", "active", self.phase_ids["guard"]
         )
         self.ldproject.advance_flag_phase(
-            "release-api-rate-limit", "completed", self.phase_ids["guard"]
-        )
-        self.ldproject.advance_flag_phase(
             "release-api-rate-limit", "active", self.phase_ids["ga"]
-        )
-        self.ldproject.advance_flag_phase(
-            "release-api-rate-limit", "completed", self.phase_ids["ga"]
         )
 
     def rp_flag_rel_currency_exchange(self):
@@ -713,19 +674,10 @@ class DemoBuilder:
             "release-currency-exchange", "active", self.phase_ids["test"]
         )
         self.ldproject.advance_flag_phase(
-            "release-currency-exchange", "completed", self.phase_ids["test"]
-        )
-        self.ldproject.advance_flag_phase(
             "release-currency-exchange", "active", self.phase_ids["guard"]
         )
         self.ldproject.advance_flag_phase(
-            "release-currency-exchange", "completed", self.phase_ids["guard"]
-        )
-        self.ldproject.advance_flag_phase(
             "release-currency-exchange", "active", self.phase_ids["ga"]
-        )
-        self.ldproject.advance_flag_phase(
-            "release-currency-exchange", "completed", self.phase_ids["ga"]
         )
 
     ##################################################
