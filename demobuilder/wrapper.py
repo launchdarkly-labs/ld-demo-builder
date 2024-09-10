@@ -73,6 +73,9 @@ def lambda_handler(event, context):
                     "SdkKey": demo.sdk_key,
                     "UserId": email,
                     "Created": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "ExpRunning": False,
+                    "EvalRunning": False,
+                    "RGRunning": False,
                 }
             )
 

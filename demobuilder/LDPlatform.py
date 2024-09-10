@@ -12,6 +12,7 @@ class LDPlatform:
     api_key_user = ""
     client_id = ""
     sdk_key = ""
+    user_id = None
 
     ##################################################
     # Constructor
@@ -78,6 +79,24 @@ class LDPlatform:
 
         if "message" in data:
             print("Error creating project: " + data["message"])
+
+        # remove comment and confirm requirements
+        payload = [
+            {"op": "replace", "path": "/requireComments", "value": False},
+            {"op": "replace", "path": "/confirmChanges", "value": False},
+        ]
+        self.getrequest(
+            "PATCH",
+            "https://app.launchdarkly.com/api/v2/projects/"
+            + project_key
+            + "/environments/production",
+            json=payload,
+            headers={
+                "Authorization": self.api_key,
+                "Content-Type": "application/json",
+                "LD-API-Version": "beta",
+            },
+        )
         return response
 
     ##################################################
@@ -110,6 +129,7 @@ class LDPlatform:
         payload = {
             "key": flag_key,
             "name": flag_name,
+            "maintainerId": self.user_id,
             "clientSideAvailability": {
                 "usingEnvironmentId": True,
                 "usingMobileKey": True,
@@ -175,6 +195,7 @@ class LDPlatform:
             "description": metric_description,
             "eventKey": event_key,
             "kind": kind,
+            "maintainerId": self.user_id,
             "isNumeric": numeric,
             "successCriteria": success_criteria,
             "eventDefault": {"disabled": exclude_empty_events},
@@ -212,7 +233,7 @@ class LDPlatform:
             "name": group_name,
             "description": description,
             "kind": kind,
-            "maintainerId": "5f9b3b7b7f7b7d001f7b7f7b",
+            "maintainerId": self.user_id,
             "tags": ["coast"],
             "metrics": metrics,
         }
@@ -254,7 +275,7 @@ class LDPlatform:
         payload = {
             "name": exp_name,
             "key": exp_key,
-            "maintainerId": "5f9b3b7b7f7b7d001f7b7f7b",
+            "maintainerId": self.user_id,
             "iteration": {
                 "hypothesis": hypothesis,
                 "canReshuffleTraffic": True,
@@ -410,6 +431,17 @@ class LDPlatform:
     ##################################################
     # Check if a project exists
     ##################################################
+
+    def get_user_id(self, email):
+        res = self.getrequest(
+            "GET",
+            "https://app.launchdarkly.com/api/v2/members?filter=email:" + email,
+            headers={"Authorization": self.api_key, "Content-Type": "application/json"},
+        )
+        data = json.loads(res.text)
+        self.user_id = data["items"][0]["_id"]
+        return self.user_id
+
     def project_exists(self, project_key):
         res = self.getrequest(
             "GET",
