@@ -19,6 +19,7 @@ def lambda_handler(event, context):
 
     project_key = ""
     project_name = ""
+    custom_name = ""
 
     body = json.loads(event["body"])
 
@@ -29,6 +30,9 @@ def lambda_handler(event, context):
 
     if "project-key" in body:
         project_key = body["project-key"].lower()
+
+    if "customName" in body:
+        custom_name = body["customName"]
 
     match action:
         case "build":
@@ -42,11 +46,14 @@ def lambda_handler(event, context):
                 create_project = True
                 pname = randomname.get_name()
                 project_key = "cxld-" + pname
-                project_name = "Coast Demo (" + pname + ")"
+                if custom_name != "":
+                    project_name = custom_name
+                else:
+                    project_name = "Coast Demo (" + pname + ")"
             else:
                 project_name = "Coast Demo (" + project_key.replace("cxld-", "") + ")"
             demo = DemoBuilder.DemoBuilder(
-                LD_API_KEY, LD_API_KEY_USER, project_key, project_name
+                LD_API_KEY, email, LD_API_KEY_USER, project_key, project_name
             )
             if create_project:
                 demo.create_project()
@@ -54,11 +61,13 @@ def lambda_handler(event, context):
                 demo.project_created = True
 
             demo.create_flags()
+            demo.create_segments()
             demo.create_metrics()
             demo.create_metric_groups()
             demo.run_experiment()
             demo.setup_release_pipeline()
             # demo.setup_flag_shortcuts()
+            demo.update_add_userid_to_flags()
 
             print(project_name)
             print(project_key)
@@ -111,7 +120,7 @@ def lambda_handler(event, context):
                 )
 
             demo = DemoBuilder.DemoBuilder(
-                LD_API_KEY, LD_API_KEY_USER, project_key, project_name
+                LD_API_KEY, None, LD_API_KEY_USER, project_key, project_name
             )
             demo.cleanup()
             ddb_table.delete_item(Key={"ProjectKey": project_key})

@@ -17,9 +17,10 @@ class LDPlatform:
     ##################################################
     # Constructor
     ##################################################
-    def __init__(self, api_key, api_key_user):
+    def __init__(self, api_key, api_key_user, email):
         self.api_key = api_key
         self.api_key_user = api_key_user
+        self.user_id = self.get_user_id(email)
 
     def getrequest(self, method, url, json=None, headers=None):
 
@@ -129,7 +130,6 @@ class LDPlatform:
         payload = {
             "key": flag_key,
             "name": flag_name,
-            "maintainerId": self.user_id,
             "clientSideAvailability": {
                 "usingEnvironmentId": True,
                 "usingMobileKey": True,
@@ -169,6 +169,86 @@ class LDPlatform:
         data = json.loads(response.text)
         if "message" in data:
             print("Error creating flag: " + data["message"])
+        return response
+
+    ##################################################
+    # Create a segment
+    ##################################################
+
+    def create_segment(self, segment_key, segment_name, env_key, description=""):
+        if self.segment_exists(segment_key, env_key):
+            return
+
+        payload = {
+            "key": segment_key,
+            "name": segment_name,
+            "description": description,
+            "unbounded": False,
+        }
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": self.api_key,
+        }
+        response = self.getrequest(
+            "POST",
+            "https://app.launchdarkly.com/api/v2/segments/"
+            + self.project_key
+            + "/"
+            + env_key,
+            json=payload,
+            headers=headers,
+        )
+        data = json.loads(response.text)
+        if "message" in data:
+            print("Error creating segment: " + data["message"])
+        return response
+
+    ##################################################
+    # Add a segment rule
+    ##################################################
+
+    def add_segment_rule(
+        self, segment_key, env_key, context_kind, attribute, op, value
+    ):
+        payload = [
+            {
+                "op": "add",
+                "path": "/rules/0",
+                "value": {
+                    "clauses": [
+                        {
+                            "contextKind": context_kind,
+                            "op": op,
+                            "attribute": attribute,
+                            "values": value,
+                            "negate": False,
+                        }
+                    ],
+                    "rolloutContextKind": "user",
+                    "description": "",
+                },
+            },
+        ]
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": self.api_key,
+        }
+        response = self.getrequest(
+            "PATCH",
+            "https://app.launchdarkly.com/api/v2/segments/"
+            + self.project_key
+            + "/"
+            + env_key
+            + "/"
+            + segment_key,
+            json=payload,
+            headers=headers,
+        )
+        data = json.loads(response.text)
+        if "message" in data:
+            print("Error creating segment: " + data["message"])
         return response
 
     ##################################################
@@ -429,10 +509,13 @@ class LDPlatform:
     #####################################
 
     ##################################################
-    # Check if a project exists
+    # Get the User ID from the email
     ##################################################
 
     def get_user_id(self, email):
+        if email is None:
+            return None
+
         res = self.getrequest(
             "GET",
             "https://app.launchdarkly.com/api/v2/members?filter=email:" + email,
@@ -441,6 +524,10 @@ class LDPlatform:
         data = json.loads(res.text)
         self.user_id = data["items"][0]["_id"]
         return self.user_id
+
+    ##################################################
+    # Check if a project exists
+    ##################################################
 
     def project_exists(self, project_key):
         res = self.getrequest(
@@ -467,6 +554,25 @@ class LDPlatform:
         )
         data = json.loads(res.text)
         if "message" in data:
+            return False
+        return True
+
+    ##################################################
+    # Check if a segment exists
+    ##################################################
+
+    def segment_exists(self, segment_key, env_key):
+        res = self.getrequest(
+            "GET",
+            "https://app.launchdarkly.com/api/v2/segments/"
+            + self.project_key
+            + "/"
+            + env_key
+            + "/"
+            + segment_key,
+            headers={"Authorization": self.api_key},
+        )
+        if res.text.strip() == "":
             return False
         return True
 
@@ -650,6 +756,32 @@ class LDPlatform:
         payload = {"environmentKey": flag_env, "instructions": [{"kind": cmd}]}
         if comment is not None:
             payload["comment"] = comment
+
+        res = self.getrequest("PATCH", url, headers=headers, json=payload)
+        return res
+
+    ##################################################
+    # Add a maintainerId to flag
+    ##################################################
+
+    def add_maintainer_to_flag(self, flag_key):
+        url = (
+            "https://app.launchdarkly.com/api/v2/flags/"
+            + self.project_key
+            + "/"
+            + flag_key
+        )
+        headers = {
+            "Authorization": self.api_key,
+            "Content-Type": "application/json",
+        }
+        payload = [
+            {
+                "op": "replace",
+                "path": "/maintainerId",
+                "value": self.user_id,
+            }
+        ]
 
         res = self.getrequest("PATCH", url, headers=headers, json=payload)
         return res

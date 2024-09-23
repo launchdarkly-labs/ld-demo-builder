@@ -4,30 +4,35 @@ import LDPlatform
 class DemoBuilder:
     project_created = False
     flags_created = False
+    segments_created = False
     metrics_created = False
     metric_groups_created = False
     experiment_created = False
+    email = None
     client_id = ""
     sdk_key = ""
     phase_ids = {}
 
     # Initialize DemoBuilder
-    def __init__(self, api_key, api_key_user, project_key, project_name):
+    def __init__(self, api_key, email, api_key_user, project_key, project_name):
         self.api_key = api_key
+        self.email = email
         self.api_key_user = api_key_user
         self.project_key = project_key
         self.project_name = project_name
-        self.ldproject = LDPlatform.LDPlatform(api_key, api_key_user)
+        self.ldproject = LDPlatform.LDPlatform(api_key, api_key_user, email)
         self.ldproject.project_key = project_key
 
     # Create everything
     def build(self):
         self.create_project()
         self.create_flags()
+        self.create_segments()
         self.create_metrics()
         self.create_metric_groups()
         self.run_experiment()
         self.setup_release_pipeline()
+        self.update_add_userid_to_flags()
 
     # Create the project
     def create_project(self):
@@ -78,6 +83,15 @@ class DemoBuilder:
         self.flag_show_ai_model()
         print("Done")
         self.flags_created = True
+
+    def create_segments(self):
+        print("Creating segments:")
+        print("  - Developers")
+        self.segment_developers()
+        print("  - Beta Users")
+        self.segment_beta_users()
+        print("Done")
+        self.segments_created = True
 
     def create_metrics(self):
         if not self.flags_created:
@@ -162,6 +176,11 @@ class DemoBuilder:
     def setup_flag_shortcuts(self):
         print("Creating flag shortcuts", end="...")
         self.flag_ai_shortcut()
+        print("Done")
+
+    def update_add_userid_to_flags(self):
+        print("Adding maintainerId to flags", end="...")
+        self.add_userid_to_flags()
         print("Done")
 
     ##################################################
@@ -402,6 +421,46 @@ class DemoBuilder:
             ],
             on_variation=1,
             tags=["AI"],
+        )
+
+    ##################################################
+    # Segment Definitions
+    # ------------------
+    # Each segment is defined in its own function below
+    ##################################################
+
+    def segment_developers(self):
+        # Developers
+        # Test
+        res = self.ldproject.create_segment(
+            "developers", "Developers", "test", "Segment for developers"
+        )
+        res = self.ldproject.add_segment_rule(
+            "developers", "test", "user", "role", "in", ["developer"]
+        )
+        # Production
+        res = self.ldproject.create_segment(
+            "developers", "Developers", "production", "Segment for developers"
+        )
+        res = self.ldproject.add_segment_rule(
+            "developers", "production", "user", "role", "in", ["developer"]
+        )
+
+    def segment_beta_users(self):
+        # Beta Users
+        # Test
+        res = self.ldproject.create_segment(
+            "beta-users", "Beta Users", "test", "Segment for beta users"
+        )
+        res = self.ldproject.add_segment_rule(
+            "beta-users", "test", "user", "beta", "in", [True]
+        )
+        # Production
+        res = self.ldproject.create_segment(
+            "beta-users", "Beta Users", "production", "Segment for beta users"
+        )
+        res = self.ldproject.add_segment_rule(
+            "beta-users", "production", "user", "beta", "in", [True]
         )
 
     ##################################################
@@ -679,6 +738,30 @@ class DemoBuilder:
         self.ldproject.advance_flag_phase(
             "release-currency-exchange", "active", self.phase_ids["ga"]
         )
+
+    ##################################################
+    # Cleanup
+    ##################################################
+
+    def add_userid_to_flags(self):
+        res = self.ldproject.add_maintainer_to_flag("release-ai-assistant")
+        res = self.ldproject.add_maintainer_to_flag("config-ai-prompt")
+        res = self.ldproject.add_maintainer_to_flag("config-ai-model")
+        res = self.ldproject.add_maintainer_to_flag("config-ai-foundation-model")
+        res = self.ldproject.add_maintainer_to_flag("release-new-widget")
+        res = self.ldproject.add_maintainer_to_flag("release-currency-exchange")
+        res = self.ldproject.add_maintainer_to_flag("release-profile-ui")
+        res = self.ldproject.add_maintainer_to_flag(
+            "release-updated-charting-algorithm"
+        )
+        res = self.ldproject.add_maintainer_to_flag("release-api-rate-limit")
+        res = self.ldproject.add_maintainer_to_flag("release-debug-logging")
+        res = self.ldproject.add_maintainer_to_flag("release-ddos-protection")
+        res = self.ldproject.add_maintainer_to_flag("release-old-to-new-search-table")
+        res = self.ldproject.add_maintainer_to_flag("release-force-update")
+        res = self.ldproject.add_maintainer_to_flag("release-broker-dashboard")
+        res = self.ldproject.add_maintainer_to_flag("release-advisor-insights")
+        res = self.ldproject.add_maintainer_to_flag("show-ai-model")
 
     ##################################################
     # Cleanup
