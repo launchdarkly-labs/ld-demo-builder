@@ -4,7 +4,8 @@ import json
 from datetime import datetime
 import randomname
 import boto3
-import DemoBuilder
+import FinTechBuilder
+import UserProfileBuilder
 
 LD_API_KEY = os.environ["LD_API_KEY"]
 LD_API_KEY_USER = os.environ["LD_API_KEY_USER"]
@@ -20,6 +21,8 @@ def lambda_handler(event, context):
     project_key = ""
     project_name = ""
     custom_name = ""
+    demo_type = "FinTech"
+    demo = None
 
     body = json.loads(event["body"])
 
@@ -34,40 +37,54 @@ def lambda_handler(event, context):
     if "customName" in body:
         custom_name = body["customName"]
 
+    if "demoType" in body:
+        demo_type = body["demoType"]
+
+    if "apiToken" in body:
+        LD_API_KEY = body["apiToken"]
+
     match action:
         case "build":
-            if "email" not in body:
-                return json.dumps(
-                    {"statusCode": 400, "body": {"message": "Missing email"}}
-                )
-            email = body["email"].lower()
+            email = ""
+            if "email" in body:
+                email = body["email"].lower()
+            # else:
+            #     return json.dumps(
+            #         {"statusCode": 400, "body": {"message": "Missing email"}}
+            #     )
+
+            pname = randomname.get_name().lower()
+            if custom_name == "":
+                project_name = "Coast Demo (" + pname + ")"
+            else:
+                project_name = custom_name
+
             create_project = False
+
             if project_key == "":
                 create_project = True
-                pname = randomname.get_name()
                 project_key = "cxld-" + pname
-                if custom_name != "":
-                    project_name = custom_name
-                else:
-                    project_name = "Coast Demo (" + pname + ")"
             else:
                 project_name = "Coast Demo (" + project_key.replace("cxld-", "") + ")"
-            demo = DemoBuilder.DemoBuilder(
-                LD_API_KEY, email, LD_API_KEY_USER, project_key, project_name
-            )
-            if create_project:
-                demo.create_project()
-            else:
+
+            print("Project Key: " + project_key)
+
+            match demo_type.lower():
+                case "userprofile":
+                    demo_type = "UserProfile"
+                    demo = UserProfileBuilder.UserProfileBuilder(
+                        LD_API_KEY, email, LD_API_KEY_USER, project_key, project_name
+                    )
+                case _:
+                    demo_type = "FinTech"
+                    demo = FinTechBuilder.FinTechBuilder(
+                        LD_API_KEY, email, LD_API_KEY_USER, project_key, project_name
+                    )
+
+            if not create_project:
                 demo.project_created = True
 
-            demo.create_flags()
-            demo.create_segments()
-            demo.create_metrics()
-            demo.create_metric_groups()
-            demo.run_experiment()
-            demo.setup_release_pipeline()
-            # demo.setup_flag_shortcuts()
-            demo.update_add_userid_to_flags()
+            demo.build()
 
             print(project_name)
             print(project_key)
@@ -85,6 +102,7 @@ def lambda_handler(event, context):
                     "ExpRunning": False,
                     "EvalRunning": False,
                     "RGRunning": False,
+                    "DemoType": demo_type,
                 }
             )
 
@@ -96,6 +114,7 @@ def lambda_handler(event, context):
                         "projectKey": project_key,
                         "clientId": demo.client_id,
                         "sdkKey": demo.sdk_key,
+                        "demoType": demo_type,
                     },
                 }
             )
@@ -119,7 +138,7 @@ def lambda_handler(event, context):
                     }
                 )
 
-            demo = DemoBuilder.DemoBuilder(
+            demo = FinTechBuilder.FinTechBuilder(
                 LD_API_KEY, None, LD_API_KEY_USER, project_key, project_name
             )
             demo.cleanup()

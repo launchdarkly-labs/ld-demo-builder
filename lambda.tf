@@ -4,6 +4,11 @@ data "archive_file" "demobuilder_zip" {
   excludes         = ["${path.module}/demobuilder/lambda_demobuilder.zip"]
   output_file_mode = "0666"
   output_path      = "${path.module}/demobuilder/lambda_demobuilder.zip"
+  depends_on = [
+    null_resource.python_pytz,
+    null_resource.python_randomname,
+    null_resource.python_requests
+  ]
 }
 
 resource "aws_lambda_function" "lambda_demobuilder" {
@@ -17,7 +22,7 @@ resource "aws_lambda_function" "lambda_demobuilder" {
   handler          = "wrapper.lambda_handler"
   source_code_hash = data.archive_file.demobuilder_zip.output_base64sha256
   runtime          = "python3.11"
-  timeout          = 300
+  timeout          = 900
   environment {
     variables = {
       LOG_GROUP       = local.demobuilder_loggroup

@@ -1,7 +1,8 @@
 import LDPlatform
+import time
 
 
-class DemoBuilder:
+class FinTechBuilder:
     project_created = False
     flags_created = False
     segments_created = False
@@ -13,7 +14,7 @@ class DemoBuilder:
     sdk_key = ""
     phase_ids = {}
 
-    # Initialize DemoBuilder
+    # Initialize FinTechBuilder
     def __init__(self, api_key, email, api_key_user, project_key, project_name):
         self.api_key = api_key
         self.email = email
@@ -36,6 +37,8 @@ class DemoBuilder:
 
     # Create the project
     def create_project(self):
+        if self.project_created:
+            return
         print("Creating project", end="...")
         self.ldproject.create_project(self.project_key, self.project_name)
         print("Done")
@@ -150,27 +153,28 @@ class DemoBuilder:
         self.rp_default_releases()
         print("Done")
         print("Adding flags to the release pipeline")
+        print("  - Config: AI Foundation Model")
         self.rp_flag_config_ai_fm()
-        self.rp_flag_rel_ai_asst()
         print("  - Release: AI Assistant")
-        self.rp_flag_rel_updated_algorithm()
+        self.rp_flag_rel_ai_asst()
         print("  - Release: Updated Charting Alorithm")
-        self.rp_flag_rel_ddos_protection()
+        self.rp_flag_rel_updated_algorithm()
         print("  - Release: DDOS Protection")
-        self.rp_flag_rel_force_update()
+        self.rp_flag_rel_ddos_protection()
         print("  - Release: Force Update")
-        self.rp_flag_rel_advisor_insights()
-        print("  - Release: Advisor Insights")
-        self.rp_flag_rel_broker_dashboard()
-        print("  - Release: Broker Dashboard")
-        self.rp_flag_rel_debug_logging()
-        print("  - Release: Debug Logging")
-        self.rp_flag_rel_profile_ui()
-        print("  - Release: Profile UI")
-        self.rp_flag_rel_api_rate_limit()
-        print("  - Release: API Rate Limit")
-        self.rp_flag_rel_currency_exchange()
-        print("  - Release: Currency Exchange")
+        self.rp_flag_rel_force_update()
+        # print("  - Release: Advisor Insights")
+        # self.rp_flag_rel_advisor_insights()
+        # print("  - Release: Broker Dashboard")
+        # self.rp_flag_rel_broker_dashboard()
+        # print("  - Release: Debug Logging")
+        # self.rp_flag_rel_debug_logging()
+        # print("  - Release: Profile UI")
+        # self.rp_flag_rel_profile_ui()
+        # print("  - Release: API Rate Limit")
+        # self.rp_flag_rel_api_rate_limit()
+        # print("  - Release: Currency Exchange")
+        # self.rp_flag_rel_currency_exchange()
         print("Done")
 
     def setup_flag_shortcuts(self):
@@ -368,7 +372,7 @@ class DemoBuilder:
                 {"value": True, "name": "Available"},
                 {"value": False, "name": "Unavailable"},
             ],
-            on_variation=1,
+            on_variation=0,
         )
 
     def flag_rel_migrate_table(self):
@@ -419,7 +423,7 @@ class DemoBuilder:
                 {"value": True, "name": "Available"},
                 {"value": False, "name": "Unavailable"},
             ],
-            on_variation=1,
+            on_variation=0,
             tags=["AI"],
         )
 
@@ -590,13 +594,19 @@ class DemoBuilder:
 
     def exp_ai_analysis_to_advisor(self):
         # Advisor Conversion
+        metrics = [
+            self.ldproject.exp_metric("ai-to-advisor-conversion"),
+            self.ldproject.exp_metric("ai-performance"),
+            self.ldproject.exp_metric("ai-csat"),
+        ]
         res = self.ldproject.create_experiment(
             "ai-analysis-to-advisor",
             "Advisor Conversion",
             "production",
             "config-ai-model",
             "We believe that by using more up to date AI models, we will increase customer conversions to contact their advisor.",
-            primary_funnel_key="ai-to-advisor-conversion",
+            metrics,
+            primary_key="ai-to-advisor-conversion",
             attributes=["plan", "beta", "metro", "net_worth"],
         )
 
@@ -656,6 +666,8 @@ class DemoBuilder:
         self.ldproject.advance_flag_phase(
             "release-advisor-insights", "active", self.phase_ids["test"]
         )
+        # give time for release guardian to finish
+        time.sleep(4)
         self.ldproject.advance_flag_phase(
             "release-advisor-insights", "active", self.phase_ids["guard"]
         )
@@ -740,7 +752,7 @@ class DemoBuilder:
         )
 
     ##################################################
-    # Cleanup
+    # Attach Maintainer to Flags
     ##################################################
 
     def add_userid_to_flags(self):

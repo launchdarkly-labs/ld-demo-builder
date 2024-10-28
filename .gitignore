@@ -172,7 +172,8 @@ demobuilder/**
 !demobuilder/builder.py
 !demobuilder/requirements.txt
 !demobuilder/LDPlatform.py
-!demobuilder/DemoBuilder.py
+!demobuilder/FinTechBuilder.py
+!demobuilder/UserProfileBuilder.py
 !demobuilder/wrapper.py
 
 .DS_Store

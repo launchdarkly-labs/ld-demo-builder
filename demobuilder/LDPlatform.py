@@ -30,29 +30,30 @@ class LDPlatform:
         # Rate limiting Logic
         #########################
 
-        # Completely stolen from Tom Totenberg :)
-        # call_limit = 5
-        # delay = 5
-        # tries = 5
-        # limit_remaining = response.headers["X-Ratelimit-Route-Remaining"]
+        if "X-Ratelimit-Route-Remaining" in response.headers:
+            # Completely stolen from Tom Totenberg :)
+            call_limit = 5
+            delay = 5
+            tries = 5
+            limit_remaining = response.headers["X-Ratelimit-Route-Remaining"]
 
-        # if int(limit_remaining) <= call_limit:
-        #     resetTime = int(response.headers["X-Ratelimit-Reset"])
-        #     currentMilliTime = round(time.time() * 1000)
-        #     if resetTime - currentMilliTime > 0:
-        #         delay = round((resetTime - currentMilliTime) // 1000)
-        #     else:
-        #         delay = 0
+            if int(limit_remaining) <= call_limit:
+                resetTime = int(response.headers["X-Ratelimit-Reset"])
+                currentMilliTime = round(time.time() * 1000)
+                if resetTime - currentMilliTime > 0:
+                    delay = round((resetTime - currentMilliTime) // 1000)
+                else:
+                    delay = 0
 
-        #     if delay < 1:
-        #         delay = 0.5
+                if delay < 1:
+                    delay = 0.5
 
-        #     tries -= 1
-        #     time.sleep(delay)
-        #     if tries == 0:
-        #         return "Rate limit exceeded. Please try again later."
-        # else:
-        #     tries = 5
+                tries -= 1
+                time.sleep(delay)
+                if tries == 0:
+                    return "Rate limit exceeded. Please try again later."
+            else:
+                tries = 5
 
         return response
 
@@ -123,6 +124,7 @@ class LDPlatform:
         off_variation=1,
         tags=[],
         migration_stages=0,
+        prerequisites=[],
     ):
         if self.flag_exists(flag_key):
             return
@@ -144,6 +146,9 @@ class LDPlatform:
                 "contextKind": "user",
                 "stageCount": migration_stages,
             }
+
+        if len(prerequisites) > 0:
+            payload["initialPrerequisites"] = prerequisites
 
         if purpose is None:
             payload["defaults"] = {
@@ -265,6 +270,8 @@ class LDPlatform:
         success_criteria="LowerThanBaseline",
         unit="",
         exclude_empty_events=False,
+        randomization_units=[],
+        tags=[],
     ):
         if self.metric_exists(metric_key):
             return
@@ -281,8 +288,14 @@ class LDPlatform:
             "eventDefault": {"disabled": exclude_empty_events},
         }
 
+        if len(tags) > 0:
+            payload["tags"] = tags
+
         if numeric:
             payload["unit"] = unit
+
+        if randomization_units:
+            payload["randomizationUnits"] = randomization_units
 
         headers = {
             "Content-Type": "application/json",
@@ -337,6 +350,79 @@ class LDPlatform:
         return response
 
     ##################################################
+    # Create context kind
+    ##################################################
+    def create_context(self, context_key, for_experiment=False):
+        payload = {
+            "name": context_key,
+            "hideInTargeting": False,
+        }
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": self.api_key,
+        }
+        response = self.getrequest(
+            "PUT",
+            "https://app.launchdarkly.com/api/v2/projects/"
+            + self.project_key
+            + "/context-kinds/"
+            + context_key,
+            json=payload,
+            headers=headers,
+        )
+        data = json.loads(response.text)
+        if "message" in data:
+            print("Error creating context: " + data["message"])
+
+        if for_experiment:
+            settings = []
+            response = self.getrequest(
+                "GET",
+                "https://app.launchdarkly.com/api/v2/projects/"
+                + self.project_key
+                + "/experimentation-settings",
+                headers=headers,
+            )
+            data = json.loads(response.text)
+            if "message" in data:
+                print("Error getting experimentation settings: " + data["message"])
+                return
+
+            for ru in data["randomizationUnits"]:
+                item = {
+                    "randomizationUnit": ru["randomizationUnit"],
+                    "standardRandomizationUnit": ru["standardRandomizationUnit"],
+                    "default": ru["default"],
+                }
+                settings.append(item)
+
+            settings.append(
+                {
+                    "randomizationUnit": context_key,
+                    "standardRandomizationUnit": "user",
+                    "default": False,
+                }
+            )
+
+            payload = {
+                "randomizationUnits": settings,
+            }
+
+            response = self.getrequest(
+                "PUT",
+                "https://app.launchdarkly.com/api/v2/projects/"
+                + self.project_key
+                + "/experimentation-settings",
+                json=payload,
+                headers=headers,
+            )
+            data = json.loads(response.text)
+            if "message" in data:
+                print("Error setting experimentation settings: " + data["message"])
+        return response
+
+    ##################################################
     # Create an experiment
     ##################################################
     def create_experiment(
@@ -346,11 +432,16 @@ class LDPlatform:
         exp_env,
         flag_key,
         hypothesis,
-        primary_funnel_key,
-        attributes,
+        metrics,
+        primary_key,
+        attributes=None,
+        randomization_unit="user",
+        custom_treatment_names=None,
     ):
         if self.experiment_exists(exp_key, exp_env):
             return
+
+        treatments = self.get_treatments(flag_key, custom_treatment_names)
 
         payload = {
             "name": exp_name,
@@ -359,19 +450,25 @@ class LDPlatform:
             "iteration": {
                 "hypothesis": hypothesis,
                 "canReshuffleTraffic": True,
-                "metrics": self.get_exp_metrics(),
-                "primaryFunnelKey": primary_funnel_key,
-                "treatments": self.get_treatments(flag_key),
+                "metrics": metrics,
+                "treatments": treatments,
                 "flags": {
                     flag_key: {
                         "ruleId": "fallthrough",
                         "flagConfigVersion": 2,
                     },
                 },
-                "randomizationUnit": "user",
-                "attributes": attributes,
+                "randomizationUnit": randomization_unit,
             },
         }
+
+        if self.metric_group_exists(primary_key):
+            payload["iteration"]["primaryFunnelKey"] = primary_key
+        else:
+            payload["iteration"]["primarySingleMetricKey"] = primary_key
+
+        if attributes is not None:
+            payload["iteration"]["attributes"] = attributes
 
         headers = {
             "Content-Type": "application/json",
@@ -516,12 +613,19 @@ class LDPlatform:
         if email is None:
             return None
 
+        filter = "email:" + email
+        if email == "":
+            filter = "role:owner"
+
         res = self.getrequest(
             "GET",
-            "https://app.launchdarkly.com/api/v2/members?filter=email:" + email,
+            "https://app.launchdarkly.com/api/v2/members?filter=" + filter,
             headers={"Authorization": self.api_key, "Content-Type": "application/json"},
         )
         data = json.loads(res.text)
+        if data["totalCount"] == 0:
+            return "6320e9313293af11fa8a847f"
+
         self.user_id = data["items"][0]["_id"]
         return self.user_id
 
@@ -668,10 +772,41 @@ class LDPlatform:
             ],
         }
 
+    #########################################################
+    # Get the flag variation IDs with values, returns a list
+    #########################################################
+    def get_flag_variation_values(self, flag_key):
+        var_ids = []
+
+        url = (
+            "https://app.launchdarkly.com/api/v2/flags/"
+            + self.project_key
+            + "/"
+            + flag_key
+        )
+        headers = {
+            "Authorization": self.api_key,
+            "Content-Type": "application/json",
+        }
+        res = self.getrequest("GET", url, headers=headers)
+        data = json.loads(res.text)
+        defaults = {
+            "onVariation": data["defaults"]["onVariation"],
+            "offVariation": data["defaults"]["offVariation"],
+        }
+        ordinal = 0
+        for var in data["variations"]:
+            var_ids.append(
+                {"ordinal": ordinal, "value": var["value"], "id": var["_id"]}
+            )
+            ordinal += 1
+
+        return var_ids, defaults
+
     ##################################################
     # Get the flag variation IDs, returns a list
     ##################################################
-    def get_flag_variations(self, flag_key):
+    def get_flag_variations(self, flag_key, filter=None):
         var_ids = []
         url = (
             "https://app.launchdarkly.com/api/v2/flags/"
@@ -686,31 +821,58 @@ class LDPlatform:
         res = self.getrequest("GET", url, headers=headers)
         data = json.loads(res.text)
         for var in data["variations"]:
-            var_ids.append(var["_id"])
+            if filter is not None:
+                if var["value"] == filter:
+                    var_ids.append(var["_id"])
+            else:
+                var_ids.append(var["_id"])
         return var_ids
 
     ##################################################
     # Create a list of treatments, returns a list
     ##################################################
-    def get_treatments(self, flag_key):
+    def get_treatments(self, flag_key, name_list=None):
         treatments = self.get_flag_variations(flag_key)
         ret_treatments = []
+        names = []
 
-        ret_treatments.append(
-            self.treatment(
-                "Control Configuration", True, 33.34, flag_key, treatments[0]
+        if name_list is not None:
+            if len(name_list) != len(treatments):
+                print("Error: name list length does not match the number of treatments")
+                return
+            else:
+                names = name_list.copy()
+        else:
+            for i in range(len(treatments)):
+                if i == 0:
+                    names.append("Control Configuration")
+                else:
+                    names.append("Treatment " + str(i))
+        allocs = []
+        total = 0.0
+        for i in range(len(treatments)):
+            x = round(float(100 / len(treatments)), 2)
+            allocs.append(x)
+            total += x
+
+        if total > 100.0:
+            allocs[0] = float(allocs[0]) - (total - 100.0)
+        if total < 100.0:
+            allocs[0] = allocs[0] + (100.0 - total)
+
+        for i in range(len(treatments)):
+            is_control = False
+            if i == 0:
+                is_control = True
+            ret_treatments.append(
+                self.treatment(
+                    names[i],
+                    is_control,
+                    allocs[i],
+                    flag_key,
+                    treatments[i],
+                )
             )
-        )
-        ret_treatments.append(
-            self.treatment(
-                "Treatment 1: High Randomness", False, 33.33, flag_key, treatments[1]
-            )
-        )
-        ret_treatments.append(
-            self.treatment(
-                "Treatment 2: Low Randomness", False, 33.33, flag_key, treatments[2]
-            )
-        )
 
         return ret_treatments
 
@@ -726,12 +888,66 @@ class LDPlatform:
     ##################################################
     # List of experiment metrics
     ##################################################
-    def get_exp_metrics(self):
-        return [
-            self.exp_metric("ai-to-advisor-conversion"),
-            self.exp_metric("ai-performance"),
-            self.exp_metric("ai-csat"),
-        ]
+    def get_exp_metrics(self, metric_list):
+        retval = []
+        for m in metric_list:
+            retval.append(m)
+
+        return retval
+
+    ##################################################
+    # Add a guarded rollout to a flag
+    ##################################################
+    def add_guarded_rollout(
+        self,
+        flag_key,
+        env_key,
+        timeout=604800000,
+        rollback=True,
+        weight=50000,
+        notify=True,
+    ):
+        vars, defaults = self.get_flag_variation_values(flag_key)
+
+        control_var = ""
+        test_var = ""
+
+        for v in vars:
+            if v["value"] == False:
+                control_var = v["id"]
+            else:
+                test_var = v["id"]
+
+        url = (
+            "https://app.launchdarkly.com/api/v2/flags/"
+            + self.project_key
+            + "/"
+            + flag_key
+            + "?ignoreConflicts=true"
+        )
+        headers = {
+            "Authorization": self.api_key,
+            "Content-Type": "application/json; domain-model=launchdarkly.semanticpatch",
+            "LD-API-Version": "beta",
+        }
+        payload = {
+            "comment": "",
+            "environmentKey": env_key,
+            "instructions": [
+                {
+                    "kind": "updateFallthroughWithMeasuredRollout",
+                    "testVariationId": test_var,
+                    "controlVariationId": control_var,
+                    "randomizationUnit": "user",
+                    "onRegression": {"notify": notify, "rollback": rollback},
+                    "onProgression": {"notify": notify, "rollForward": True},
+                    "monitoringWindowMilliseconds": timeout,
+                    "rolloutWeight": weight,
+                }
+            ],
+        }
+        res = self.getrequest("PATCH", url, headers=headers, json=payload)
+        return res
 
     ##################################################
     # Toggle flag state
@@ -782,6 +998,101 @@ class LDPlatform:
                 "value": self.user_id,
             }
         ]
+
+        res = self.getrequest("PATCH", url, headers=headers, json=payload)
+        return res
+
+    ##################################################
+    # Add a maintainerId to metric
+    ##################################################
+
+    def add_maintainer_to_metric(self, metric_key):
+        url = (
+            "https://app.launchdarkly.com/api/v2/metrics/"
+            + self.project_key
+            + "/"
+            + metric_key
+        )
+        headers = {
+            "Authorization": self.api_key,
+            "Content-Type": "application/json",
+        }
+        payload = [
+            {
+                "op": "replace",
+                "path": "/maintainerId",
+                "value": self.user_id,
+            }
+        ]
+
+        res = self.getrequest("PATCH", url, headers=headers, json=payload)
+        return res
+
+    ##################################################
+    # Add segment to flag
+    ##################################################
+
+    def add_segment_to_flag(self, flag_key, segment_key, env_key, variation=True):
+        url = (
+            "https://app.launchdarkly.com/api/v2/flags/"
+            + self.project_key
+            + "/"
+            + flag_key
+        )
+        headers = {
+            "Authorization": self.api_key,
+            "Content-Type": "application/json; domain-model=launchdarkly.semanticpatch",
+        }
+        var_id = self.get_flag_variations(flag_key, variation)[0]
+        payload = {
+            "environmentKey": env_key,
+            "instructions": [
+                {
+                    "kind": "addRule",
+                    "variationId": var_id,
+                    "clauses": [
+                        {
+                            "contextKind": "",
+                            "attribute": "segmentMatch",
+                            "op": "segmentMatch",
+                            "negate": False,
+                            "values": [segment_key],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        res = self.getrequest("PATCH", url, headers=headers, json=payload)
+        return res
+
+    ##################################################
+    # Add prequisite to flag
+    ##################################################
+
+    def add_prerequisite_to_flag(self, flag_key, prerequisite_key, var_id, env_key):
+        varids = self.get_flag_variations(prerequisite_key)
+
+        url = (
+            "https://app.launchdarkly.com/api/v2/flags/"
+            + self.project_key
+            + "/"
+            + flag_key
+        )
+        headers = {
+            "Authorization": self.api_key,
+            "Content-Type": "application/json; domain-model=launchdarkly.semanticpatch",
+        }
+        payload = {
+            "environmentKey": env_key,
+            "instructions": [
+                {
+                    "kind": "addPrerequisite",
+                    "prerequisiteKey": prerequisite_key,
+                    "variationId": varids[var_id],
+                }
+            ],
+        }
 
         res = self.getrequest("PATCH", url, headers=headers, json=payload)
         return res
@@ -926,6 +1237,8 @@ class LDPlatform:
             if counter > 8:
                 break
             if status_code != 200:
+                data = json.loads(response.text)
+                print("Error advancing flag phase: " + data["message"])
                 time.sleep(2)
 
         return response
